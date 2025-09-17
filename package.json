@@ -1,0 +1,60 @@
+{
+  "name": "learning-my-recipes",
+  "version": "1.0.0",
+  "description": "Full-stack recipe application for educational purposes - Node.js, React, PostgreSQL",
+  "main": "index.js",
+  "scripts": {
+    "install-all": "npm install && cd backend && npm install && cd ../frontend && npm install && cd ../etl && pip install -r requirements.txt",
+    "dev": "concurrently \"npm run dev:backend\" \"npm run dev:frontend\"",
+    "dev:backend": "cd backend && npm run dev",
+    "dev:frontend": "cd frontend && npm start",
+    "start": "concurrently \"npm run start:backend\" \"npm run start:frontend\"",
+    "start:backend": "cd backend && npm start",
+    "start:frontend": "cd frontend && npm run build && serve -s frontend/build",
+    "build": "cd frontend && npm run build",
+    "test": "concurrently \"npm run test:backend\" \"npm run test:frontend\"",
+    "test:backend": "cd backend && npm test",
+    "test:frontend": "cd frontend && npm test -- --watchAll=false",
+    "lint": "concurrently \"npm run lint:backend\" \"npm run lint:frontend\"",
+    "lint:backend": "cd backend && npm run lint",
+    "lint:frontend": "cd frontend && npm run lint",
+    "db:setup": "cd backend && npm run db:setup",
+    "db:reset": "cd backend && npm run db:reset",
+    "etl:install": "cd etl && pip install -r requirements.txt",
+    "etl:run": "cd etl && python main.py",
+    "clean": "rimraf node_modules backend/node_modules frontend/node_modules frontend/build",
+    "postinstall": "echo 'Run npm run install-all to install dependencies for all packages'"
+  },
+  "workspaces": [
+    "backend",
+    "frontend"
+  ],
+  "keywords": [
+    "fullstack",
+    "nodejs",
+    "react",
+    "postgresql",
+    "recipes",
+    "educational",
+    "monorepo"
+  ],
+  "author": "Learning My Recipes Team",
+  "license": "MIT",
+  "devDependencies": {
+    "concurrently": "^8.2.2",
+    "rimraf": "^5.0.5",
+    "serve": "^14.2.1"
+  },
+  "engines": {
+    "node": ">=16.0.0",
+    "npm": ">=8.0.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/your-username/learning-my-recipes.git"
+  },
+  "bugs": {
+    "url": "https://github.com/your-username/learning-my-recipes/issues"
+  },
+  "homepage": "https://github.com/your-username/learning-my-recipes#readme"
+}
