@@ -33,12 +33,18 @@ describe('API Server Basic Tests', () => {
       expect(res.body.version).toBe('1.0.0')
     })
 
-    test('GET /api/recipes should return placeholder response', async () => {
+    test('GET /api/recipes should return recipe response', async () => {
       const res = await request(app)
         .get('/api/recipes')
-        .expect(200)
       
-      expect(res.body.endpoint).toBe('GET /api/recipes')
+      // Expect either success or database unavailable
+      expect([200, 503]).toContain(res.status)
+      
+      if (res.status === 200) {
+        expect(res.body.recipes).toBeDefined()
+      } else if (res.status === 503) {
+        expect(res.body.code).toBe('DATABASE_UNAVAILABLE')
+      }
     })
 
     test('GET /api/ingredients should return placeholder response', async () => {

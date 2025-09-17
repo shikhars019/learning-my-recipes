@@ -1,95 +1,411 @@
 const express = require('express')
 const router = express.Router()
+
+const Recipe = require('../models/Recipe')
+const { asyncHandler } = require('../middleware/errorHandler')
+const {
+  validateCreateRecipe,
+  validateUpdateRecipe,
+  validateSearchRecipe,
+  validateUuidParam,
+  validateRecipeAccess,
+  validateRecipeOwnership,
+  sanitizeRecipeForPublic
+} = require('../validation/recipeValidation')
 const logger = require('../config/logger')
 
-/**
- * Recipe Routes
- * These will be fully implemented in Prompt 3
- */
+// GET /api/recipes - Get all recipes with filtering and search
+router.get('/', asyncHandler(async (req, res) => {
+  // Validate query parameters
+  const { error, value: validatedQuery } = validateSearchRecipe(req.query)
+  if (error) {
+    return res.status(400).json({
+      error: 'Validation Error',
+      details: error.details.map(detail => ({
+        field: detail.path.join('.'),
+        message: detail.message
+      })),
+      code: 'VALIDATION_ERROR'
+    })
+  }
 
-/**
- * @route   GET /api/recipes
- * @desc    Get all recipes with pagination and filtering
- * @access  Public
- */
-router.get('/', (req, res) => {
-  res.status(200).json({
-    message: 'Recipe listing endpoint - To be implemented in Prompt 3',
-    endpoint: 'GET /api/recipes',
-    expectedParams: ['page', 'limit', 'category', 'difficulty', 'ingredients'],
-    timestamp: new Date().toISOString()
-  })
-})
+  try {
+    // Handle ingredient-based search
+    if (validatedQuery.ingredients) {
+      const ingredientIds = Array.isArray(validatedQuery.ingredients) 
+        ? validatedQuery.ingredients 
+        : [validatedQuery.ingredients]
+      
+      const recipes = await Recipe.findByIngredients(ingredientIds, {
+        is_public: validatedQuery.is_public,
+        limit: validatedQuery.limit
+      })
 
-/**
- * @route   GET /api/recipes/:id
- * @desc    Get single recipe by ID
- * @access  Public
- */
-router.get('/:id', (req, res) => {
-  res.status(200).json({
-    message: 'Single recipe endpoint - To be implemented in Prompt 3',
-    endpoint: 'GET /api/recipes/:id',
-    requestedId: req.params.id,
-    timestamp: new Date().toISOString()
-  })
-})
+      return res.json({
+        recipes: recipes.map(recipe => sanitizeRecipeForPublic(recipe)),
+        total: recipes.length,
+        page: validatedQuery.page,
+        limit: validatedQuery.limit,
+        search_type: 'ingredients'
+      })
+    }
 
-/**
- * @route   POST /api/recipes
- * @desc    Create new recipe
- * @access  Public (will add auth later)
- */
-router.post('/', (req, res) => {
-  res.status(200).json({
-    message: 'Recipe creation endpoint - To be implemented in Prompt 3',
-    endpoint: 'POST /api/recipes',
-    receivedBody: Object.keys(req.body),
-    timestamp: new Date().toISOString()
-  })
-})
+    // Calculate offset for pagination
+    const offset = (validatedQuery.page - 1) * validatedQuery.limit
 
-/**
- * @route   PUT /api/recipes/:id
- * @desc    Update existing recipe
- * @access  Public (will add auth later)
- */
-router.put('/:id', (req, res) => {
-  res.status(200).json({
-    message: 'Recipe update endpoint - To be implemented in Prompt 3',
-    endpoint: 'PUT /api/recipes/:id',
-    requestedId: req.params.id,
-    receivedBody: Object.keys(req.body),
-    timestamp: new Date().toISOString()
-  })
-})
+    // Standard recipe search
+    const recipes = await Recipe.findAll({
+      ...validatedQuery,
+      offset
+    })
 
-/**
- * @route   DELETE /api/recipes/:id
- * @desc    Delete recipe
- * @access  Public (will add auth later)
- */
-router.delete('/:id', (req, res) => {
-  res.status(200).json({
-    message: 'Recipe deletion endpoint - To be implemented in Prompt 3',
-    endpoint: 'DELETE /api/recipes/:id',
-    requestedId: req.params.id,
-    timestamp: new Date().toISOString()
-  })
-})
+    // Get total count for pagination (simplified - in production you might want a separate count query)
+    const totalRecipes = recipes.length < validatedQuery.limit ? recipes.length + offset : null
 
-/**
- * @route   GET /api/recipes/search
- * @desc    Search recipes by ingredients
- * @access  Public
- */
-router.get('/search', (req, res) => {
-  res.status(200).json({
-    message: 'Recipe search endpoint - To be implemented in Prompt 3',
-    endpoint: 'GET /api/recipes/search',
-    queryParams: req.query,
-    timestamp: new Date().toISOString()
-  })
-})
+    res.json({
+      recipes: recipes.map(recipe => sanitizeRecipeForPublic(recipe)),
+      total: totalRecipes,
+      page: validatedQuery.page,
+      limit: validatedQuery.limit,
+      has_more: recipes.length === validatedQuery.limit
+    })
+
+  } catch (error) {
+    logger.error('Error fetching recipes:', error)
+    
+    // Handle database connection errors gracefully
+    if (error.code === 'ENOTFOUND' || error.code === 'ECONNREFUSED' || error.message?.includes('connect')) {
+      return res.status(503).json({
+        error: 'Database service unavailable',
+        message: 'Unable to connect to the database. Please try again later.',
+        code: 'DATABASE_UNAVAILABLE'
+      })
+    }
+    
+    throw error
+  }
+}))
+
+// POST /api/recipes - Create new recipe
+router.post('/', asyncHandler(async (req, res) => {
+  // Validate request body
+  const { error, value: validatedData } = validateCreateRecipe(req.body)
+  if (error) {
+    return res.status(400).json({
+      error: 'Validation Error',
+      details: error.details.map(detail => ({
+        field: detail.path.join('.'),
+        message: detail.message
+      })),
+      code: 'VALIDATION_ERROR'
+    })
+  }
+
+  try {
+    const recipe = await Recipe.create(validatedData)
+    
+    logger.info(`Recipe created: ${recipe.id} by user ${recipe.user_id}`)
+    
+    res.status(201).json({
+      message: 'Recipe created successfully',
+      recipe: recipe.toJSON()
+    })
+
+  } catch (error) {
+    if (error.code === '23503') { // Foreign key violation
+      return res.status(400).json({
+        error: 'Invalid reference',
+        message: 'Category ID, User ID, or Ingredient ID does not exist',
+        code: 'FOREIGN_KEY_ERROR'
+      })
+    }
+    
+    logger.error('Error creating recipe:', error)
+    throw error
+  }
+}))
+
+// GET /api/recipes/:id - Get specific recipe
+router.get('/:id', asyncHandler(async (req, res) => {
+  // Validate UUID parameter
+  const { error: paramError } = validateUuidParam(req.params)
+  if (paramError) {
+    return res.status(400).json({
+      error: 'Invalid ID format',
+      message: 'Recipe ID must be a valid UUID',
+      code: 'INVALID_UUID'
+    })
+  }
+
+  try {
+    const recipe = await Recipe.findById(req.params.id)
+    
+    if (!recipe) {
+      return res.status(404).json({
+        error: 'Recipe not found',
+        message: `Recipe with ID ${req.params.id} does not exist`,
+        code: 'RECIPE_NOT_FOUND'
+      })
+    }
+
+    // Check access permissions (for future auth implementation)
+    const userId = req.user?.id // This will be set by auth middleware in the future
+    if (!validateRecipeAccess(recipe, userId)) {
+      return res.status(403).json({
+        error: 'Access denied',
+        message: 'You do not have permission to view this recipe',
+        code: 'ACCESS_DENIED'
+      })
+    }
+
+    res.json({
+      recipe: sanitizeRecipeForPublic(recipe)
+    })
+
+  } catch (error) {
+    logger.error(`Error fetching recipe ${req.params.id}:`, error)
+    throw error
+  }
+}))
+
+// PUT /api/recipes/:id - Update recipe
+router.put('/:id', asyncHandler(async (req, res) => {
+  // Validate UUID parameter
+  const { error: paramError } = validateUuidParam(req.params)
+  if (paramError) {
+    return res.status(400).json({
+      error: 'Invalid ID format',
+      message: 'Recipe ID must be a valid UUID',
+      code: 'INVALID_UUID'
+    })
+  }
+
+  // Validate request body
+  const { error, value: validatedData } = validateUpdateRecipe(req.body)
+  if (error) {
+    return res.status(400).json({
+      error: 'Validation Error',
+      details: error.details.map(detail => ({
+        field: detail.path.join('.'),
+        message: detail.message
+      })),
+      code: 'VALIDATION_ERROR'
+    })
+  }
+
+  try {
+    // First check if recipe exists
+    const existingRecipe = await Recipe.findById(req.params.id)
+    if (!existingRecipe) {
+      return res.status(404).json({
+        error: 'Recipe not found',
+        message: `Recipe with ID ${req.params.id} does not exist`,
+        code: 'RECIPE_NOT_FOUND'
+      })
+    }
+
+    // Check ownership permissions (for future auth implementation)
+    const userId = req.user?.id // This will be set by auth middleware in the future
+    if (!validateRecipeOwnership(existingRecipe, userId)) {
+      return res.status(403).json({
+        error: 'Access denied',
+        message: 'You can only update your own recipes',
+        code: 'OWNERSHIP_REQUIRED'
+      })
+    }
+
+    const updatedRecipe = await Recipe.update(req.params.id, validatedData)
+    
+    logger.info(`Recipe updated: ${updatedRecipe.id} by user ${userId}`)
+    
+    res.json({
+      message: 'Recipe updated successfully',
+      recipe: updatedRecipe.toJSON()
+    })
+
+  } catch (error) {
+    if (error.code === '23503') { // Foreign key violation
+      return res.status(400).json({
+        error: 'Invalid reference',
+        message: 'Category ID or Ingredient ID does not exist',
+        code: 'FOREIGN_KEY_ERROR'
+      })
+    }
+    
+    logger.error(`Error updating recipe ${req.params.id}:`, error)
+    throw error
+  }
+}))
+
+// DELETE /api/recipes/:id - Delete recipe
+router.delete('/:id', asyncHandler(async (req, res) => {
+  // Validate UUID parameter
+  const { error: paramError } = validateUuidParam(req.params)
+  if (paramError) {
+    return res.status(400).json({
+      error: 'Invalid ID format',
+      message: 'Recipe ID must be a valid UUID',
+      code: 'INVALID_UUID'
+    })
+  }
+
+  try {
+    // First check if recipe exists and get ownership info
+    const existingRecipe = await Recipe.findById(req.params.id)
+    if (!existingRecipe) {
+      return res.status(404).json({
+        error: 'Recipe not found',
+        message: `Recipe with ID ${req.params.id} does not exist`,
+        code: 'RECIPE_NOT_FOUND'
+      })
+    }
+
+    // Check ownership permissions (for future auth implementation)
+    const userId = req.user?.id // This will be set by auth middleware in the future
+    if (!validateRecipeOwnership(existingRecipe, userId)) {
+      return res.status(403).json({
+        error: 'Access denied',
+        message: 'You can only delete your own recipes',
+        code: 'OWNERSHIP_REQUIRED'
+      })
+    }
+
+    const deleted = await Recipe.delete(req.params.id)
+    
+    if (deleted) {
+      logger.info(`Recipe deleted: ${req.params.id} by user ${userId}`)
+      res.json({
+        message: 'Recipe deleted successfully',
+        recipe_id: req.params.id
+      })
+    } else {
+      // This shouldn't happen since we checked existence above
+      res.status(404).json({
+        error: 'Recipe not found',
+        message: `Recipe with ID ${req.params.id} could not be deleted`,
+        code: 'RECIPE_NOT_FOUND'
+      })
+    }
+
+  } catch (error) {
+    logger.error(`Error deleting recipe ${req.params.id}:`, error)
+    throw error
+  }
+}))
+
+// GET /api/recipes/:id/versions - Get recipe version history
+router.get('/:id/versions', asyncHandler(async (req, res) => {
+  // Validate UUID parameter
+  const { error: paramError } = validateUuidParam(req.params)
+  if (paramError) {
+    return res.status(400).json({
+      error: 'Invalid ID format',
+      message: 'Recipe ID must be a valid UUID',
+      code: 'INVALID_UUID'
+    })
+  }
+
+  try {
+    // First check if recipe exists
+    const recipe = await Recipe.findById(req.params.id)
+    if (!recipe) {
+      return res.status(404).json({
+        error: 'Recipe not found',
+        message: `Recipe with ID ${req.params.id} does not exist`,
+        code: 'RECIPE_NOT_FOUND'
+      })
+    }
+
+    // Check access permissions
+    const userId = req.user?.id
+    if (!validateRecipeAccess(recipe, userId)) {
+      return res.status(403).json({
+        error: 'Access denied',
+        message: 'You do not have permission to view this recipe\'s history',
+        code: 'ACCESS_DENIED'
+      })
+    }
+
+    const versions = await Recipe.getVersionHistory(req.params.id)
+    
+    res.json({
+      recipe_id: req.params.id,
+      versions: versions,
+      total_versions: versions.length
+    })
+
+  } catch (error) {
+    logger.error(`Error fetching version history for recipe ${req.params.id}:`, error)
+    throw error
+  }
+}))
+
+// GET /api/recipes/search/ingredients - Advanced ingredient-based search
+router.get('/search/ingredients', asyncHandler(async (req, res) => {
+  const { ingredients } = req.query
+  
+  if (!ingredients) {
+    return res.status(400).json({
+      error: 'Missing parameter',
+      message: 'Ingredients parameter is required',
+      code: 'MISSING_INGREDIENTS'
+    })
+  }
+
+  // Parse ingredients (can be comma-separated string or array)
+  let ingredientIds
+  try {
+    if (typeof ingredients === 'string') {
+      ingredientIds = ingredients.split(',').map(id => id.trim())
+    } else if (Array.isArray(ingredients)) {
+      ingredientIds = ingredients
+    } else {
+      throw new Error('Invalid format')
+    }
+
+    // Validate all ingredient IDs are UUIDs
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
+    const invalidIds = ingredientIds.filter(id => !uuidRegex.test(id))
+    
+    if (invalidIds.length > 0) {
+      return res.status(400).json({
+        error: 'Invalid ingredient IDs',
+        message: 'All ingredient IDs must be valid UUIDs',
+        invalid_ids: invalidIds,
+        code: 'INVALID_UUID'
+      })
+    }
+
+  } catch (error) {
+    return res.status(400).json({
+      error: 'Invalid ingredients format',
+      message: 'Ingredients must be a comma-separated string or array of UUIDs',
+      code: 'INVALID_FORMAT'
+    })
+  }
+
+  try {
+    const options = {
+      is_public: req.query.is_public !== undefined ? req.query.is_public === 'true' : true,
+      limit: req.query.limit ? parseInt(req.query.limit) : 50
+    }
+
+    const recipes = await Recipe.findByIngredients(ingredientIds, options)
+    
+    res.json({
+      recipes: recipes.map(recipe => ({
+        ...sanitizeRecipeForPublic(recipe),
+        matching_ingredients: recipe.matching_ingredients
+      })),
+      search_ingredients: ingredientIds,
+      total: recipes.length,
+      limit: options.limit
+    })
+
+  } catch (error) {
+    logger.error('Error in ingredient-based search:', error)
+    throw error
+  }
+}))
 
 module.exports = router
