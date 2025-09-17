@@ -1,0 +1,15 @@
+{
+  "require": [
+    "./test/setup.js"
+  ],
+  "recursive": true,
+  "timeout": 5000,
+  "reporter": "spec",
+  "exit": true,
+  "spec": [
+    "test/**/*.test.js"
+  ],
+  "ignore": [
+    "node_modules/**/*"
+  ]
+}
