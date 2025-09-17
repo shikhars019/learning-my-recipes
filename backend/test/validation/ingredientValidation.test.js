@@ -105,13 +105,14 @@ describe('Ingredient Validation', () => {
         name: '  Fresh Tomatoes  ', // Extra spaces
         category: 'Vegetables',
         unknown_field: 'should be stripped',
-        tags: ['fresh', 'fresh', 'red'] // Duplicates
+        tags: ['fresh', 'red'] // No duplicates
       }
 
       const { error, value } = validateCreateIngredient(dataWithExtraFields)
       expect(error).to.be.undefined
       expect(value.name).to.equal('Fresh Tomatoes') // Trimmed
       expect(value.unknown_field).to.be.undefined // Stripped
+      expect(value.tags).to.deep.equal(['fresh', 'red'])
     })
   })
 

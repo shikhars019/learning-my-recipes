@@ -11,22 +11,20 @@ class Ingredient {
     this.name = data.name
     this.normalized_name = data.normalized_name
     this.category = data.category
-    this.unit = data.unit
-    this.calories_per_100g = data.calories_per_100g
-    this.protein_per_100g = data.protein_per_100g
-    this.carbs_per_100g = data.carbs_per_100g
-    this.fat_per_100g = data.fat_per_100g
-    this.fiber_per_100g = data.fiber_per_100g
-    this.sugar_per_100g = data.sugar_per_100g
-    this.sodium_per_100g = data.sodium_per_100g
     this.description = data.description
-    this.is_allergen = data.is_allergen
-    this.allergen_info = data.allergen_info
+    this.nutritional_info = data.nutritional_info
+    this.allergens = data.allergens
     this.storage_tips = data.storage_tips
-    this.seasonal_availability = data.seasonal_availability
+    this.season = data.season
+    this.is_organic = data.is_organic
+    this.is_perishable = data.is_perishable
+    this.shelf_life_days = data.shelf_life_days
+    this.tags = data.tags
+    this.usage_count = data.usage_count || 0
+    this.last_used_at = data.last_used_at
+    this.is_active = data.is_active
     this.created_at = data.created_at
     this.updated_at = data.updated_at
-    this.usage_count = data.usage_count || 0
   }
 
   /**
@@ -73,31 +71,23 @@ class Ingredient {
 
       const query = `
         INSERT INTO ingredients (
-          name, normalized_name, category, unit, calories_per_100g,
-          protein_per_100g, carbs_per_100g, fat_per_100g, fiber_per_100g,
-          sugar_per_100g, sodium_per_100g, description, is_allergen,
-          allergen_info, storage_tips, seasonal_availability
-        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16)
+          name, normalized_name, category, description, nutritional_info,
+          allergens, storage_tips, season, is_organic, tags
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
         RETURNING *
       `
 
       const values = [
         ingredientData.name,
         normalizedName,
-        ingredientData.category,
-        ingredientData.unit,
-        ingredientData.calories_per_100g,
-        ingredientData.protein_per_100g,
-        ingredientData.carbs_per_100g,
-        ingredientData.fat_per_100g,
-        ingredientData.fiber_per_100g,
-        ingredientData.sugar_per_100g,
-        ingredientData.sodium_per_100g,
-        ingredientData.description,
-        ingredientData.is_allergen || false,
-        ingredientData.allergen_info,
-        ingredientData.storage_tips,
-        ingredientData.seasonal_availability
+        ingredientData.category || null,
+        ingredientData.description || null,
+        JSON.stringify(ingredientData.nutritional_info || {}),
+        ingredientData.allergens || [],
+        ingredientData.storage_tips || null,
+        ingredientData.season || [],
+        ingredientData.is_organic || false,
+        ingredientData.tags || []
       ]
 
       const result = await client.query(query, values)
@@ -158,20 +148,23 @@ class Ingredient {
 
           const query = `
             INSERT INTO ingredients (
-              name, normalized_name, category, unit, calories_per_100g,
-              protein_per_100g, carbs_per_100g, fat_per_100g, fiber_per_100g,
-              sugar_per_100g, sodium_per_100g, description, is_allergen,
-              allergen_info, storage_tips, seasonal_availability
-            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16)
+              name, normalized_name, category, description, nutritional_info,
+              allergens, storage_tips, season, is_organic, tags
+            ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
             RETURNING *
           `
 
           const values = [
-            data.name, normalizedName, data.category, data.unit,
-            data.calories_per_100g, data.protein_per_100g, data.carbs_per_100g,
-            data.fat_per_100g, data.fiber_per_100g, data.sugar_per_100g,
-            data.sodium_per_100g, data.description, data.is_allergen || false,
-            data.allergen_info, data.storage_tips, data.seasonal_availability
+            data.name,
+            normalizedName,
+            data.category || null,
+            data.description || null,
+            JSON.stringify(data.nutritional_info || {}),
+            data.allergens || [],
+            data.storage_tips || null,
+            data.season || [],
+            data.is_organic || false,
+            data.tags || []
           ]
 
           const result = await client.query(query, values)
@@ -269,10 +262,13 @@ class Ingredient {
         values.push(options.category)
       }
 
-      if (options.is_allergen !== undefined) {
+      if (options.has_allergens !== undefined) {
         paramCount++
-        query += ` AND i.is_allergen = $${paramCount}`
-        values.push(options.is_allergen)
+        if (options.has_allergens) {
+          query += ` AND array_length(i.allergens, 1) > 0`
+        } else {
+          query += ` AND (i.allergens IS NULL OR array_length(i.allergens, 1) = 0)`
+        }
       }
 
       if (options.search) {
@@ -289,12 +285,16 @@ class Ingredient {
 
       // Add ordering
       const sortBy = options.sort_by || 'name'
-      const sortOrder = options.sort_order || 'ASC'
+      const sortOrder = (options.sort_order || 'ASC').toUpperCase()
       
-      if (sortBy === 'usage_count') {
+      // Validate sort column to prevent SQL injection and errors
+      const validSortColumns = ['name', 'category', 'created_at', 'updated_at', 'usage_count']
+      const safeSortBy = validSortColumns.includes(sortBy) ? sortBy : 'name'
+      
+      if (safeSortBy === 'usage_count') {
         query += ` ORDER BY usage_count ${sortOrder}, i.name ASC`
       } else {
-        query += ` ORDER BY i.${sortBy} ${sortOrder}`
+        query += ` ORDER BY i.${safeSortBy} ${sortOrder}`
       }
 
       // Add pagination
@@ -320,6 +320,80 @@ class Ingredient {
   }
 
   /**
+   * Search ingredients with pagination and filtering
+   * @param {Object} params - Search parameters 
+   * @returns {Object} - Search results with pagination
+   */
+  static async search(params = {}) {
+    try {
+      const {
+        q: searchQuery,
+        category,
+        page = 1,
+        limit = 20,
+        sort_by = 'name',
+        sort_order = 'asc'
+      } = params
+
+      const offset = (page - 1) * limit
+
+      // Build search options for findAll
+      const options = {
+        limit,
+        offset
+      }
+
+      if (category) {
+        options.category = category
+      }
+
+      if (searchQuery) {
+        options.search = searchQuery
+      }
+
+      // Add sorting
+      options.sort_by = sort_by
+      options.sort_order = sort_order
+
+      // Get ingredients
+      const ingredients = await this.findAll(options)
+
+      // Get total count for pagination
+      let countQuery = `
+        SELECT COUNT(*) as total FROM ingredients i WHERE 1=1
+      `
+      const countValues = []
+      let countParamCount = 0
+
+      if (category) {
+        countParamCount++
+        countQuery += ` AND i.category = $${countParamCount}`
+        countValues.push(category)
+      }
+
+      if (searchQuery) {
+        countParamCount++
+        countQuery += ` AND (i.name ILIKE $${countParamCount} OR i.description ILIKE $${countParamCount})`
+        countValues.push(`%${searchQuery}%`)
+      }
+
+      const countResult = await dbPool.query(countQuery, countValues)
+      const total = parseInt(countResult.rows[0].total)
+
+      return {
+        ingredients,
+        page: parseInt(page),
+        limit: parseInt(limit),
+        total,
+        pages: Math.ceil(total / limit)
+      }
+    } catch (error) {
+      logger.error('Error searching ingredients:', error)
+      throw error
+    }
+  }
+
+  /**
    * Search ingredients for autocomplete with partial matching
    * @param {string} searchTerm - Search term
    * @param {Object} options - Search options
@@ -336,7 +410,7 @@ class Ingredient {
 
       const query = `
         SELECT i.*, 
-               COALESCE(usage_stats.usage_count, 0) as usage_count,
+               0 as usage_count,
                CASE 
                  WHEN i.normalized_name = $1 THEN 1
                  WHEN i.normalized_name LIKE $2 THEN 2
@@ -344,13 +418,8 @@ class Ingredient {
                  ELSE 4
                END as relevance_score
         FROM ingredients i
-        LEFT JOIN (
-          SELECT ingredient_id, COUNT(*) as usage_count
-          FROM recipe_ingredients
-          GROUP BY ingredient_id
-        ) usage_stats ON i.id = usage_stats.ingredient_id
-        WHERE i.normalized_name ILIKE $3
-        ORDER BY relevance_score ASC, usage_count DESC, i.name ASC
+        WHERE i.normalized_name ILIKE $3 AND i.is_active = true
+        ORDER BY relevance_score ASC, i.name ASC
         LIMIT $4
       `
       
@@ -409,10 +478,9 @@ class Ingredient {
       let paramCount = 0
 
       const allowedFields = [
-        'name', 'normalized_name', 'category', 'unit', 'calories_per_100g',
-        'protein_per_100g', 'carbs_per_100g', 'fat_per_100g', 'fiber_per_100g',
-        'sugar_per_100g', 'sodium_per_100g', 'description', 'is_allergen',
-        'allergen_info', 'storage_tips', 'seasonal_availability'
+        'name', 'normalized_name', 'category', 'description', 'nutritional_info',
+        'allergens', 'storage_tips', 'season', 'is_organic', 'is_perishable',
+        'shelf_life_days', 'tags'
       ]
 
       allowedFields.forEach(field => {
@@ -517,10 +585,10 @@ class Ingredient {
           ORDER BY usage_count DESC
           LIMIT 10
         `,
-        allergens: 'SELECT COUNT(*) as count FROM ingredients WHERE is_allergen = true',
+        allergens: 'SELECT COUNT(*) as count FROM ingredients WHERE array_length(allergens, 1) > 0',
         with_nutrition: `
           SELECT COUNT(*) as count FROM ingredients 
-          WHERE calories_per_100g IS NOT NULL OR protein_per_100g IS NOT NULL
+          WHERE nutritional_info::text != '{}'::text
         `
       }
 
@@ -600,22 +668,18 @@ class Ingredient {
       name: this.name,
       normalized_name: this.normalized_name,
       category: this.category,
-      unit: this.unit,
-      nutrition: {
-        calories_per_100g: this.calories_per_100g,
-        protein_per_100g: this.protein_per_100g,
-        carbs_per_100g: this.carbs_per_100g,
-        fat_per_100g: this.fat_per_100g,
-        fiber_per_100g: this.fiber_per_100g,
-        sugar_per_100g: this.sugar_per_100g,
-        sodium_per_100g: this.sodium_per_100g
-      },
       description: this.description,
-      is_allergen: this.is_allergen,
-      allergen_info: this.allergen_info,
+      nutritional_info: this.nutritional_info,
+      allergens: this.allergens,
       storage_tips: this.storage_tips,
-      seasonal_availability: this.seasonal_availability,
+      season: this.season,
+      is_organic: this.is_organic,
+      is_perishable: this.is_perishable,
+      shelf_life_days: this.shelf_life_days,
+      tags: this.tags,
       usage_count: this.usage_count,
+      last_used_at: this.last_used_at,
+      is_active: this.is_active,
       created_at: this.created_at,
       updated_at: this.updated_at
     }

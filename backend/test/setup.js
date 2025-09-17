@@ -1,4 +1,3 @@
-const { describe, it, before, after } = require('mocha')
 const { expect } = require('chai')
 const path = require('path')
 
@@ -11,16 +10,6 @@ if (!process.env.DATABASE_URL && !process.env.DB_TEST_HOST) {
   console.warn('Warning: No test database configured. Tests may fail if database is unavailable.')
   console.warn('Set DATABASE_URL or DB_TEST_* environment variables for proper testing.')
 }
-
-// Global test setup
-before(async function() {
-  this.timeout(10000) // Allow time for database connections
-  console.log('Starting test suite...')
-})
-
-after(async function() {
-  console.log('Test suite completed.')
-})
 
 // Export test utilities
 module.exports = {
