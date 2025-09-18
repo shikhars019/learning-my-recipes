@@ -1,12 +1,14 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Container, Typography, Grid, Card, CardContent, CardMedia, Button, Box, Chip } from '@mui/material';
-import { Add as AddIcon, Search as SearchIcon } from '@mui/icons-material';
+import { Add as AddIcon, Search as SearchIcon, AutoAwesome as AIIcon } from '@mui/icons-material';
 import { useRecipes } from '../contexts/RecipeContext';
 import { recipeApi } from '../services/api';
 import RecipeAvatar from '../components/RecipeAvatar';
+import AIRecipeModal from '../components/AIRecipeModal';
 
 function HomePage() {
   const { recipes, loading, error } = useRecipes();
+  const [aiModalOpen, setAiModalOpen] = useState(false);
 
   console.log('HomePage Debug:', { 
     recipes, 
@@ -55,6 +57,21 @@ function HomePage() {
             href="/search"
           >
             Search by Ingredients
+          </Button>
+          <Button
+            variant="contained"
+            color="secondary"
+            startIcon={<AIIcon />}
+            size="large"
+            onClick={() => setAiModalOpen(true)}
+            sx={{
+              background: 'linear-gradient(45deg, #A100FF 30%, #B833FF 90%)',
+              '&:hover': {
+                background: 'linear-gradient(45deg, #7B00CC 30%, #A100FF 90%)',
+              }
+            }}
+          >
+            AI Recipe Generator
           </Button>
         </Box>
       </Box>
@@ -115,6 +132,12 @@ function HomePage() {
           </Typography>
         )}
       </Box>
+
+      {/* AI Recipe Modal */}
+      <AIRecipeModal 
+        open={aiModalOpen} 
+        onClose={() => setAiModalOpen(false)} 
+      />
     </Container>
   );
 }

@@ -13,6 +13,7 @@ const {
   sanitizeRecipeForPublic
 } = require('../validation/recipeValidation')
 const logger = require('../config/logger')
+const openaiService = require('../services/openaiService')
 
 // GET /api/recipes - Get all recipes with filtering and search
 router.get('/', asyncHandler(async (req, res) => {
@@ -412,6 +413,109 @@ router.get('/search/ingredients', asyncHandler(async (req, res) => {
   } catch (error) {
     logger.error('Error in ingredient-based search:', error)
     throw error
+  }
+}))
+
+// POST /api/recipes/ai-generate - Generate recipe using AI based on ingredients
+router.post('/ai-generate', asyncHandler(async (req, res) => {
+  logger.info('AI recipe generation request received', { body: req.body })
+
+  // Check if OpenAI service is available
+  if (!openaiService.isAvailable()) {
+    return res.status(503).json({
+      error: 'AI Service Unavailable',
+      message: 'OpenAI service is not configured. Please check server configuration.',
+      code: 'AI_SERVICE_UNAVAILABLE'
+    })
+  }
+
+  // Validate request body
+  const { ingredients, cuisineType, mealType } = req.body
+
+  if (!ingredients || !Array.isArray(ingredients) || ingredients.length === 0) {
+    return res.status(400).json({
+      error: 'Validation Error',
+      message: 'Please provide at least one ingredient.',
+      code: 'MISSING_INGREDIENTS'
+    })
+  }
+
+  // Validate ingredients array
+  const validIngredients = ingredients.filter(ingredient => 
+    ingredient && typeof ingredient === 'string' && ingredient.trim().length > 0
+  )
+
+  if (validIngredients.length === 0) {
+    return res.status(400).json({
+      error: 'Validation Error',
+      message: 'Please provide valid ingredient names.',
+      code: 'INVALID_INGREDIENTS'
+    })
+  }
+
+  if (validIngredients.length > 10) {
+    return res.status(400).json({
+      error: 'Validation Error',
+      message: 'Maximum 10 ingredients allowed for AI recipe generation.',
+      code: 'TOO_MANY_INGREDIENTS'
+    })
+  }
+
+  try {
+    logger.info('Generating AI recipe', {
+      ingredients: validIngredients,
+      cuisineType: cuisineType || 'any',
+      mealType: mealType || 'any'
+    })
+
+    const aiRecipe = await openaiService.generateRecipe(
+      validIngredients, 
+      cuisineType, 
+      mealType
+    )
+
+    logger.info('AI recipe generated successfully', {
+      title: aiRecipe.title,
+      ingredients: aiRecipe.ingredients?.length || 0,
+      instructions: aiRecipe.instructions?.length || 0
+    })
+
+    res.json({
+      success: true,
+      recipe: aiRecipe,
+      generated_at: new Date().toISOString(),
+      request_ingredients: validIngredients
+    })
+
+  } catch (error) {
+    logger.error('AI recipe generation failed:', error)
+    
+    // Return appropriate error response
+    if (error.message.includes('API key')) {
+      res.status(401).json({
+        error: 'Authentication Error',
+        message: 'Invalid API configuration. Please check server settings.',
+        code: 'AI_AUTH_ERROR'
+      })
+    } else if (error.message.includes('rate limit')) {
+      res.status(429).json({
+        error: 'Rate Limit Exceeded',
+        message: 'AI service rate limit exceeded. Please try again later.',
+        code: 'AI_RATE_LIMIT'
+      })
+    } else if (error.message.includes('temporarily unavailable')) {
+      res.status(503).json({
+        error: 'Service Unavailable',
+        message: 'AI service is temporarily unavailable. Please try again later.',
+        code: 'AI_SERVICE_DOWN'
+      })
+    } else {
+      res.status(500).json({
+        error: 'AI Generation Failed',
+        message: 'Failed to generate recipe. Please try again.',
+        code: 'AI_GENERATION_ERROR'
+      })
+    }
   }
 }))
 

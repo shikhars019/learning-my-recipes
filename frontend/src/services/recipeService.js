@@ -400,6 +400,38 @@ export const recipeService = {
       description: description.trim(),
     });
   },
+
+  /**
+   * Generate AI recipe based on ingredients
+   */
+  async generateAIRecipe(ingredients, cuisineType = null, mealType = null) {
+    if (!ingredients || ingredients.length === 0) {
+      throw new Error('At least one ingredient is required');
+    }
+
+    // Convert ingredient objects to names if needed
+    const ingredientNames = ingredients.map(ingredient => 
+      typeof ingredient === 'string' ? ingredient : ingredient.name
+    ).filter(name => name && name.trim().length > 0);
+
+    if (ingredientNames.length === 0) {
+      throw new Error('Valid ingredient names are required');
+    }
+
+    const requestData = {
+      ingredients: ingredientNames
+    };
+
+    if (cuisineType) {
+      requestData.cuisineType = cuisineType;
+    }
+
+    if (mealType) {
+      requestData.mealType = mealType;
+    }
+
+    return apiClient.post('/api/recipes/ai-generate', requestData);
+  },
 };
 
 export default recipeService;
