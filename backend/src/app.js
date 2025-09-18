@@ -15,7 +15,6 @@ const healthRoutes = require('./routes/health')
 const recipeRoutes = require('./routes/recipes')
 const ingredientRoutes = require('./routes/ingredients')
 const categoryRoutes = require('./routes/categories')
-const userRoutes = require('./routes/users')
 const aiRoutes = require('./routes/ai')
 
 // Import middleware
@@ -101,7 +100,6 @@ app.use('/api/health', healthRoutes)
 app.use('/api/recipes', recipeRoutes)
 app.use('/api/ingredients', ingredientRoutes)
 app.use('/api/categories', categoryRoutes)
-app.use('/api/users', userRoutes)
 app.use('/api/ai', aiRoutes)
 
 // Root endpoint

@@ -11,15 +11,20 @@ class Recipe {
     this.title = data.title
     this.description = data.description
     this.instructions = data.instructions
-    this.prep_time_minutes = data.prep_time_minutes
-    this.cook_time_minutes = data.cook_time_minutes
+    // Map database columns to consistent API format
+    this.prep_time_minutes = data.prep_time
+    this.cook_time_minutes = data.cook_time
+    this.total_time_minutes = data.total_time
     this.servings = data.servings
-    this.difficulty_level = data.difficulty_level
+    this.difficulty_level = data.difficulty
     this.category_id = data.category_id
-    this.user_id = data.user_id
     this.image_url = data.image_url
     this.source_url = data.source_url
     this.notes = data.notes
+    this.tips = data.tips
+    this.nutrition_info = data.nutrition_info
+    this.is_ai_generated = data.is_ai_generated
+    this.ai_prompt = data.ai_prompt
     this.is_public = data.is_public !== undefined ? data.is_public : true
     this.created_at = data.created_at
     this.updated_at = data.updated_at
@@ -38,28 +43,30 @@ class Recipe {
 
       const query = `
         INSERT INTO recipes (
-          title, description, instructions, prep_time_minutes, cook_time_minutes,
-          servings, difficulty_level, category_id, user_id, image_url, source_url,
-          notes, is_public, version
-        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
+          title, description, instructions, prep_time, cook_time,
+          servings, difficulty_level, category_id, image_url, 
+          is_public, is_active
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
         RETURNING *
       `
+
+      // Calculate total_time from prep_time + cook_time
+      const prepTime = recipeData.prep_time || 0;
+      const cookTime = recipeData.cook_time || 0;
+      const totalTime = prepTime + cookTime;
 
       const values = [
         recipeData.title,
         recipeData.description,
-        recipeData.instructions,
-        recipeData.prep_time_minutes,
-        recipeData.cook_time_minutes,
-        recipeData.servings,
-        recipeData.difficulty_level,
-        recipeData.category_id,
-        recipeData.user_id,
+        JSON.stringify(recipeData.instructions), // Ensure instructions array is properly stringified for PostgreSQL JSONB
+        prepTime,
+        cookTime,
+        recipeData.servings || 1,
+        recipeData.difficulty_level || recipeData.difficulty || 'medium',
+        recipeData.category_id || null,
         recipeData.image_url,
-        recipeData.source_url,
-        recipeData.notes,
         recipeData.is_public !== undefined ? recipeData.is_public : true,
-        1 // Initial version
+        recipeData.is_active !== undefined ? recipeData.is_active : true
       ]
 
       const result = await client.query(query, values)
@@ -90,10 +97,9 @@ class Recipe {
   static async findById(id) {
     try {
       const query = `
-        SELECT r.*, c.name as category_name, u.username
+        SELECT r.*, c.name as category_name
         FROM recipes r
         LEFT JOIN categories c ON r.category_id = c.id
-        LEFT JOIN users u ON r.user_id = u.id
         WHERE r.id = $1
       `
       
@@ -105,7 +111,6 @@ class Recipe {
 
       const recipe = new Recipe(result.rows[0])
       recipe.category_name = result.rows[0].category_name
-      recipe.username = result.rows[0].username
       
       // Fetch ingredients
       recipe.ingredients = await recipe._getIngredients(id)
@@ -125,11 +130,10 @@ class Recipe {
   static async findAll(options = {}) {
     try {
       let query = `
-        SELECT r.*, c.name as category_name, u.username
+        SELECT r.*, c.name as category_name
         FROM recipes r
         LEFT JOIN categories c ON r.category_id = c.id
-        LEFT JOIN users u ON r.user_id = u.id
-        WHERE 1=1
+        WHERE r.is_active = true
       `
       
       const values = []
@@ -140,12 +144,6 @@ class Recipe {
         paramCount++
         query += ` AND r.category_id = $${paramCount}`
         values.push(options.category_id)
-      }
-
-      if (options.user_id) {
-        paramCount++
-        query += ` AND r.user_id = $${paramCount}`
-        values.push(options.user_id)
       }
 
       if (options.difficulty_level) {
@@ -213,8 +211,9 @@ class Recipe {
         return null
       }
 
-      // Create version history entry
-      await Recipe._createVersionHistory(client, currentRecipe)
+      // Create version history entry (disabled for simplified schema)
+      // TODO: Re-enable when recipe_versions table is created
+      // await Recipe._createVersionHistory(client, currentRecipe)
 
       // Prepare update query
       const updateFields = []
@@ -222,16 +221,23 @@ class Recipe {
       let paramCount = 0
 
       const allowedFields = [
-        'title', 'description', 'instructions', 'prep_time_minutes', 
-        'cook_time_minutes', 'servings', 'difficulty_level', 'category_id',
-        'image_url', 'source_url', 'notes', 'is_public'
+        'title', 'description', 'instructions', 'prep_time', 
+        'cook_time', 'servings', 'difficulty_level', 'category_id',
+        'image_url', 'tips', 'nutrition_info', 'is_ai_generated', 'ai_prompt'
       ]
 
       allowedFields.forEach(field => {
         if (updates[field] !== undefined) {
           paramCount++
           updateFields.push(`${field} = $${paramCount}`)
-          values.push(updates[field])
+          
+          // Handle JSONB fields that need proper serialization
+          if (field === 'instructions') {
+            // Ensure instructions array is properly stringified for PostgreSQL JSONB
+            values.push(JSON.stringify(updates[field]))
+          } else {
+            values.push(updates[field])
+          }
         }
       })
 
@@ -240,10 +246,11 @@ class Recipe {
         return currentRecipe
       }
 
-      // Increment version
-      paramCount++
-      updateFields.push(`version = $${paramCount}`)
-      values.push(currentRecipe.version + 1)
+      // Increment version (disabled for simplified schema)
+      // TODO: Re-enable when version column is added to recipes table
+      // paramCount++
+      // updateFields.push(`version = $${paramCount}`)
+      // values.push(currentRecipe.version + 1)
 
       paramCount++
       updateFields.push(`updated_at = $${paramCount}`)
@@ -321,26 +328,26 @@ class Recipe {
   static async findByIngredients(ingredientIds, options = {}) {
     try {
       let query = `
-        SELECT DISTINCT r.*, c.name as category_name, u.username,
+        SELECT DISTINCT r.*, c.name as category_name,
                COUNT(ri.ingredient_id) as matching_ingredients
         FROM recipes r
         LEFT JOIN categories c ON r.category_id = c.id
-        LEFT JOIN users u ON r.user_id = u.id
         INNER JOIN recipe_ingredients ri ON r.id = ri.recipe_id
-        WHERE ri.ingredient_id = ANY($1)
+        WHERE ri.ingredient_id = ANY($1) AND r.is_active = true
       `
       
       const values = [ingredientIds]
       let paramCount = 1
 
-      if (options.is_public !== undefined) {
-        paramCount++
-        query += ` AND r.is_public = $${paramCount}`
-        values.push(options.is_public)
-      }
+      // Note: is_public column doesn't exist in current schema, so we skip this filter
+      // if (options.is_public !== undefined) {
+      //   paramCount++
+      //   query += ` AND r.is_public = $${paramCount}`
+      //   values.push(options.is_public)
+      // }
 
       query += `
-        GROUP BY r.id, c.name, u.username
+        GROUP BY r.id, c.name
         ORDER BY matching_ingredients DESC, r.created_at DESC
       `
 
@@ -355,7 +362,6 @@ class Recipe {
       return result.rows.map(row => {
         const recipe = new Recipe(row)
         recipe.category_name = row.category_name
-        recipe.username = row.username
         recipe.matching_ingredients = parseInt(row.matching_ingredients)
         return recipe
       })
@@ -373,11 +379,10 @@ class Recipe {
   async _getIngredients(recipeId) {
     try {
       const query = `
-        SELECT ri.*, i.name, i.category, i.unit
+        SELECT ri.*, i.name, i.category
         FROM recipe_ingredients ri
-        JOIN ingredients i ON ri.ingredient_id = i.id
+        LEFT JOIN ingredients i ON ri.ingredient_id = i.id
         WHERE ri.recipe_id = $1
-        ORDER BY ri.order_index
       `
       
       const result = await dbPool.query(query, [recipeId])
@@ -399,7 +404,7 @@ class Recipe {
       const ingredient = ingredients[i]
       const query = `
         INSERT INTO recipe_ingredients (
-          recipe_id, ingredient_id, quantity, unit, notes, order_index
+          recipe_id, ingredient_id, quantity, unit, preparation_notes, is_optional
         ) VALUES ($1, $2, $3, $4, $5, $6)
       `
       
@@ -408,8 +413,8 @@ class Recipe {
         ingredient.ingredient_id,
         ingredient.quantity,
         ingredient.unit,
-        ingredient.notes,
-        i + 1
+        ingredient.preparation || null,
+        ingredient.optional || false
       ])
     }
   }
@@ -429,7 +434,7 @@ class Recipe {
       const ingredient = ingredients[i]
       const query = `
         INSERT INTO recipe_ingredients (
-          recipe_id, ingredient_id, quantity, unit, notes, order_index
+          recipe_id, ingredient_id, quantity, unit, preparation_notes, is_optional
         ) VALUES ($1, $2, $3, $4, $5, $6)
       `
       
@@ -438,8 +443,8 @@ class Recipe {
         ingredient.ingredient_id,
         ingredient.quantity,
         ingredient.unit,
-        ingredient.notes,
-        i + 1
+        ingredient.preparation || null,
+        ingredient.optional || false
       ])
     }
   }
@@ -510,16 +515,18 @@ class Recipe {
       instructions: this.instructions,
       prep_time_minutes: this.prep_time_minutes,
       cook_time_minutes: this.cook_time_minutes,
-      total_time_minutes: (this.prep_time_minutes || 0) + (this.cook_time_minutes || 0),
+      total_time_minutes: this.total_time_minutes,
       servings: this.servings,
       difficulty_level: this.difficulty_level,
       category_id: this.category_id,
       category_name: this.category_name,
-      user_id: this.user_id,
-      username: this.username,
       image_url: this.image_url,
       source_url: this.source_url,
       notes: this.notes,
+      tips: this.tips,
+      nutrition_info: this.nutrition_info,
+      is_ai_generated: this.is_ai_generated,
+      ai_prompt: this.ai_prompt,
       is_public: this.is_public,
       version: this.version,
       ingredients: this.ingredients,

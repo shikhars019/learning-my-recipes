@@ -9,10 +9,16 @@ class Ingredient {
   constructor(data = {}) {
     this.id = data.id
     this.name = data.name
-    this.normalized_name = data.normalized_name
     this.category = data.category
+    this.common_unit = data.common_unit
+    this.nutrition_data = data.nutrition_data
+    this.created_at = data.created_at
+    this.updated_at = data.updated_at
+    
+    // Legacy properties for backwards compatibility
+    this.normalized_name = data.normalized_name
     this.description = data.description
-    this.nutritional_info = data.nutritional_info
+    this.nutritional_info = data.nutritional_info || data.nutrition_data
     this.allergens = data.allergens
     this.storage_tips = data.storage_tips
     this.season = data.season
@@ -23,8 +29,6 @@ class Ingredient {
     this.usage_count = data.usage_count || 0
     this.last_used_at = data.last_used_at
     this.is_active = data.is_active
-    this.created_at = data.created_at
-    this.updated_at = data.updated_at
   }
 
   /**
@@ -46,7 +50,7 @@ class Ingredient {
   }
 
   /**
-   * Create a new ingredient with normalization and duplicate checking
+   * Create a new ingredient with basic schema support
    * @param {Object} ingredientData - Ingredient data
    * @returns {Promise<Ingredient>} - Created ingredient
    */
@@ -55,39 +59,31 @@ class Ingredient {
     try {
       await client.query('BEGIN')
 
-      // Normalize the name
-      const normalizedName = Ingredient.normalizeName(ingredientData.name)
-      
-      // Check for existing ingredient with same normalized name
+      // Check for existing ingredient with same name (case insensitive)
       const existingQuery = `
         SELECT id, name FROM ingredients 
-        WHERE normalized_name = $1
+        WHERE LOWER(name) = LOWER($1)
       `
-      const existingResult = await client.query(existingQuery, [normalizedName])
+      const existingResult = await client.query(existingQuery, [ingredientData.name])
       
       if (existingResult.rows.length > 0) {
-        throw new Error(`Ingredient already exists: "${existingResult.rows[0].name}" (normalized as "${normalizedName}")`)
+        throw new Error(`Ingredient already exists: "${existingResult.rows[0].name}"`)
       }
 
+      // Use the actual table schema: name, normalized_name, category, common_unit, nutrition_data
       const query = `
         INSERT INTO ingredients (
-          name, normalized_name, category, description, nutritional_info,
-          allergens, storage_tips, season, is_organic, tags
-        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+          name, normalized_name, category, common_unit, nutrition_data
+        ) VALUES ($1, $2, $3, $4, $5)
         RETURNING *
       `
 
       const values = [
         ingredientData.name,
-        normalizedName,
+        Ingredient.normalizeName(ingredientData.name),
         ingredientData.category || null,
-        ingredientData.description || null,
-        JSON.stringify(ingredientData.nutritional_info || {}),
-        ingredientData.allergens || [],
-        ingredientData.storage_tips || null,
-        ingredientData.season || [],
-        ingredientData.is_organic || false,
-        ingredientData.tags || []
+        ingredientData.common_unit || null,
+        ingredientData.nutrition_data || ingredientData.nutritional_info || null
       ]
 
       const result = await client.query(query, values)
@@ -255,32 +251,17 @@ class Ingredient {
       const values = []
       let paramCount = 0
 
-      // Add filters
+      // Add filters for simplified schema
       if (options.category) {
         paramCount++
         query += ` AND i.category = $${paramCount}`
         values.push(options.category)
       }
 
-      if (options.has_allergens !== undefined) {
-        paramCount++
-        if (options.has_allergens) {
-          query += ` AND array_length(i.allergens, 1) > 0`
-        } else {
-          query += ` AND (i.allergens IS NULL OR array_length(i.allergens, 1) = 0)`
-        }
-      }
-
       if (options.search) {
         paramCount++
-        query += ` AND (i.name ILIKE $${paramCount} OR i.description ILIKE $${paramCount})`
+        query += ` AND i.name ILIKE $${paramCount}`
         values.push(`%${options.search}%`)
-      }
-
-      if (options.name_search) {
-        paramCount++
-        query += ` AND i.normalized_name ILIKE $${paramCount}`
-        values.push(`%${Ingredient.normalizeName(options.name_search)}%`)
       }
 
       // Add ordering
@@ -327,13 +308,17 @@ class Ingredient {
   static async search(params = {}) {
     try {
       const {
-        q: searchQuery,
+        q,
+        search,
         category,
         page = 1,
         limit = 20,
         sort_by = 'name',
         sort_order = 'asc'
       } = params
+      
+      // Use either q or search parameter for backward compatibility
+      const searchQuery = q || search
 
       const offset = (page - 1) * limit
 
@@ -373,7 +358,7 @@ class Ingredient {
 
       if (searchQuery) {
         countParamCount++
-        countQuery += ` AND (i.name ILIKE $${countParamCount} OR i.description ILIKE $${countParamCount})`
+        countQuery += ` AND i.name ILIKE $${countParamCount}`
         countValues.push(`%${searchQuery}%`)
       }
 

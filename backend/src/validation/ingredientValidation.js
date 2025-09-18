@@ -4,7 +4,7 @@ const Joi = require('joi')
  * Validation schemas for ingredient operations
  */
 
-// Base ingredient validation schema
+// Base ingredient validation schema - simplified to match actual database schema
 const baseIngredientSchema = {
   name: Joi.string()
     .trim()
@@ -29,6 +29,18 @@ const baseIngredientSchema = {
       'string.max': 'Category cannot exceed 50 characters'
     }),
     
+  common_unit: Joi.string()
+    .trim()
+    .max(20)
+    .optional()
+    .allow(null, '')
+    .messages({
+      'string.max': 'Common unit cannot exceed 20 characters'
+    }),
+    
+  nutrition_data: Joi.object().optional().allow(null),
+    
+  // Legacy fields for backwards compatibility - will be ignored in DB operations
   description: Joi.string()
     .trim()
     .max(500)
@@ -149,6 +161,16 @@ const batchCreateIngredientsSchema = Joi.object({
 // Search ingredients validation
 const searchIngredientsSchema = Joi.object({
   q: Joi.string()
+    .trim()
+    .min(1)
+    .max(100)
+    .optional()
+    .messages({
+      'string.min': 'Search query must be at least 1 character',
+      'string.max': 'Search query cannot exceed 100 characters'
+    }),
+    
+  search: Joi.string()
     .trim()
     .min(1)
     .max(100)

@@ -104,7 +104,7 @@ router.post('/', asyncHandler(async (req, res) => {
   try {
     const recipe = await Recipe.create(validatedData)
     
-    logger.info(`Recipe created: ${recipe.id} by user ${recipe.user_id}`)
+    logger.info(`Recipe created: ${recipe.id}`)
     
     res.status(201).json({
       message: 'Recipe created successfully',
@@ -206,13 +206,16 @@ router.put('/:id', asyncHandler(async (req, res) => {
 
     // Check ownership permissions (for future auth implementation)
     const userId = req.user?.id // This will be set by auth middleware in the future
-    if (!validateRecipeOwnership(existingRecipe, userId)) {
-      return res.status(403).json({
-        error: 'Access denied',
-        message: 'You can only update your own recipes',
-        code: 'OWNERSHIP_REQUIRED'
-      })
-    }
+    
+    // Temporarily disable ownership check since authentication is not implemented
+    // TODO: Re-enable when authentication system is ready
+    // if (!validateRecipeOwnership(existingRecipe, userId)) {
+    //   return res.status(403).json({
+    //     error: 'Access denied',
+    //     message: 'You can only update your own recipes',
+    //     code: 'OWNERSHIP_REQUIRED'
+    //   })
+    // }
 
     const updatedRecipe = await Recipe.update(req.params.id, validatedData)
     
@@ -262,13 +265,16 @@ router.delete('/:id', asyncHandler(async (req, res) => {
 
     // Check ownership permissions (for future auth implementation)
     const userId = req.user?.id // This will be set by auth middleware in the future
-    if (!validateRecipeOwnership(existingRecipe, userId)) {
-      return res.status(403).json({
-        error: 'Access denied',
-        message: 'You can only delete your own recipes',
-        code: 'OWNERSHIP_REQUIRED'
-      })
-    }
+    
+    // Temporarily disable ownership check since authentication is not implemented
+    // TODO: Re-enable when authentication system is ready
+    // if (!validateRecipeOwnership(existingRecipe, userId)) {
+    //   return res.status(403).json({
+    //     error: 'Access denied',
+    //     message: 'You can only delete your own recipes',
+    //     code: 'OWNERSHIP_REQUIRED'
+    //   })
+    // }
 
     const deleted = await Recipe.delete(req.params.id)
     
@@ -356,30 +362,31 @@ router.get('/search/ingredients', asyncHandler(async (req, res) => {
   let ingredientIds
   try {
     if (typeof ingredients === 'string') {
-      ingredientIds = ingredients.split(',').map(id => id.trim())
+      ingredientIds = ingredients.split(',').map(id => {
+        const trimmed = id.trim();
+        // Basic UUID format validation (8-4-4-4-12 characters)
+        if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(trimmed)) {
+          throw new Error('Invalid UUID format');
+        }
+        return trimmed;
+      })
     } else if (Array.isArray(ingredients)) {
-      ingredientIds = ingredients
+      ingredientIds = ingredients.map(id => {
+        const uuid = typeof id === 'string' ? id.trim() : String(id);
+        // Basic UUID format validation
+        if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(uuid)) {
+          throw new Error('Invalid UUID format');
+        }
+        return uuid;
+      })
     } else {
       throw new Error('Invalid format')
-    }
-
-    // Validate all ingredient IDs are UUIDs
-    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
-    const invalidIds = ingredientIds.filter(id => !uuidRegex.test(id))
-    
-    if (invalidIds.length > 0) {
-      return res.status(400).json({
-        error: 'Invalid ingredient IDs',
-        message: 'All ingredient IDs must be valid UUIDs',
-        invalid_ids: invalidIds,
-        code: 'INVALID_UUID'
-      })
     }
 
   } catch (error) {
     return res.status(400).json({
       error: 'Invalid ingredients format',
-      message: 'Ingredients must be a comma-separated string or array of UUIDs',
+      message: 'Ingredients must be a comma-separated string or array of valid UUID ingredient IDs',
       code: 'INVALID_FORMAT'
     })
   }

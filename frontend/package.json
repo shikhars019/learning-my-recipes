@@ -1,8 +1,8 @@
 {
-  "name": "learning-my-recipes-frontend",
+  "name": "my-recipes-frontend",
   "version": "1.0.0",
   "private": true,
-  "description": "Frontend React application for Learning My Recipes - Educational full-stack application",
+  "description": "Frontend React application for My Recipes - Full-stack recipe management application",
   "homepage": ".",
   "dependencies": {
     "@emotion/react": "^11.11.1",

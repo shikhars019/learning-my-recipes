@@ -20,6 +20,10 @@ const ingredientSchema = Joi.object({
     .messages({
       'string.max': 'Unit must not exceed 50 characters'
     }),
+  preparation: Joi.string().max(100).allow('', null)
+    .messages({
+      'string.max': 'Preparation must not exceed 100 characters'
+    }),
   notes: Joi.string().max(500).allow('', null)
     .messages({
       'string.max': 'Notes must not exceed 500 characters'
@@ -38,22 +42,28 @@ const createRecipeSchema = Joi.object({
     .messages({
       'string.max': 'Description must not exceed 1000 characters'
     }),
-  instructions: Joi.string().min(1).required()
+  instructions: Joi.array().items(Joi.string().min(1)).min(1).required()
     .messages({
-      'string.min': 'Instructions cannot be empty',
+      'array.min': 'At least one instruction step is required',
       'any.required': 'Instructions are required'
     }),
-  prep_time_minutes: Joi.number().integer().min(0).max(1440).allow(null)
+  prep_time: Joi.number().integer().min(0).max(1440).allow(null)
     .messages({
       'number.integer': 'Prep time must be a whole number',
       'number.min': 'Prep time cannot be negative',
       'number.max': 'Prep time cannot exceed 24 hours (1440 minutes)'
     }),
-  cook_time_minutes: Joi.number().integer().min(0).max(1440).allow(null)
+  cook_time: Joi.number().integer().min(0).max(1440).allow(null)
     .messages({
       'number.integer': 'Cook time must be a whole number',
       'number.min': 'Cook time cannot be negative',
       'number.max': 'Cook time cannot exceed 24 hours (1440 minutes)'
+    }),
+  total_time: Joi.number().integer().min(0).max(1440).allow(null)
+    .messages({
+      'number.integer': 'Total time must be a whole number',
+      'number.min': 'Total time cannot be negative',
+      'number.max': 'Total time cannot exceed 24 hours (1440 minutes)'
     }),
   servings: Joi.number().integer().min(1).max(100).allow(null)
     .messages({
@@ -65,14 +75,13 @@ const createRecipeSchema = Joi.object({
     .messages({
       'any.only': 'Difficulty level must be easy, medium, or hard'
     }),
+  difficulty: Joi.string().valid('easy', 'medium', 'hard').allow(null)
+    .messages({
+      'any.only': 'Difficulty must be easy, medium, or hard'
+    }),
   category_id: Joi.string().uuid().allow(null)
     .messages({
       'string.uuid': 'Category ID must be a valid UUID'
-    }),
-  user_id: Joi.string().uuid().required()
-    .messages({
-      'string.uuid': 'User ID must be a valid UUID',
-      'any.required': 'User ID is required'
     }),
   image_url: Joi.string().uri().allow('', null)
     .messages({
@@ -109,21 +118,27 @@ const updateRecipeSchema = Joi.object({
     .messages({
       'string.max': 'Description must not exceed 1000 characters'
     }),
-  instructions: Joi.string().min(1)
+  instructions: Joi.array().items(Joi.string().min(1)).min(1)
     .messages({
-      'string.min': 'Instructions cannot be empty'
+      'array.min': 'At least one instruction step is required'
     }),
-  prep_time_minutes: Joi.number().integer().min(0).max(1440).allow(null)
+  prep_time: Joi.number().integer().min(0).max(1440).allow(null)
     .messages({
       'number.integer': 'Prep time must be a whole number',
       'number.min': 'Prep time cannot be negative',
       'number.max': 'Prep time cannot exceed 24 hours (1440 minutes)'
     }),
-  cook_time_minutes: Joi.number().integer().min(0).max(1440).allow(null)
+  cook_time: Joi.number().integer().min(0).max(1440).allow(null)
     .messages({
       'number.integer': 'Cook time must be a whole number',
       'number.min': 'Cook time cannot be negative',
       'number.max': 'Cook time cannot exceed 24 hours (1440 minutes)'
+    }),
+  total_time: Joi.number().integer().min(0).max(1440).allow(null)
+    .messages({
+      'number.integer': 'Total time must be a whole number',
+      'number.min': 'Total time cannot be negative',
+      'number.max': 'Total time cannot exceed 24 hours (1440 minutes)'
     }),
   servings: Joi.number().integer().min(1).max(100).allow(null)
     .messages({
@@ -175,10 +190,6 @@ const searchRecipeSchema = Joi.object({
     .messages({
       'string.uuid': 'Category ID must be a valid UUID'
     }),
-  user_id: Joi.string().uuid()
-    .messages({
-      'string.uuid': 'User ID must be a valid UUID'
-    }),
   difficulty_level: Joi.string().valid('easy', 'medium', 'hard')
     .messages({
       'any.only': 'Difficulty level must be easy, medium, or hard'
@@ -188,13 +199,14 @@ const searchRecipeSchema = Joi.object({
       'boolean.base': 'Is public must be true or false'
     }),
   ingredients: Joi.alternatives().try(
-    Joi.string().uuid(),
-    Joi.array().items(Joi.string().uuid()).min(1)
+    Joi.number().integer().positive(),
+    Joi.array().items(Joi.number().integer().positive()).min(1)
   )
     .messages({
-      'string.uuid': 'Ingredient ID must be a valid UUID',
+      'number.integer': 'Ingredient ID must be a valid integer',
+      'number.positive': 'Ingredient ID must be a positive number',
       'array.min': 'At least one ingredient ID is required',
-      'alternatives.match': 'Ingredients must be a UUID string or array of UUIDs'
+      'alternatives.match': 'Ingredients must be an integer or array of integers'
     }),
   min_prep_time: Joi.number().integer().min(0)
     .messages({
@@ -288,20 +300,18 @@ const validateUuidParam = (data) => {
   })
 }
 
-// Custom validation helpers
+// Custom validation helpers (simplified without user authentication)
 const validateRecipeOwnership = (recipe, userId) => {
-  return recipe.user_id === userId
+  // Since we removed user system, allow all access
+  return true
 }
 
 const validateRecipeAccess = (recipe, userId) => {
-  return recipe.is_public || recipe.user_id === userId
+  // Allow access to all public recipes
+  return recipe.is_public !== false
 }
 
 const sanitizeRecipeForPublic = (recipe) => {
-  if (!recipe.is_public) {
-    const { user_id, ...publicRecipe } = recipe.toJSON ? recipe.toJSON() : recipe
-    return publicRecipe
-  }
   return recipe.toJSON ? recipe.toJSON() : recipe
 }
 

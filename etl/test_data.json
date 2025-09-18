@@ -1,0 +1,551 @@
+{
+  "categories": [
+    {
+      "name": "appetizers",
+      "description": "Small dishes served before the main course"
+    },
+    {
+      "name": "soups",
+      "description": "Liquid-based dishes, hot or cold"
+    },
+    {
+      "name": "salads",
+      "description": "Fresh dishes with vegetables, fruits, or proteins"
+    },
+    {
+      "name": "pasta",
+      "description": "Italian noodle-based dishes"
+    },
+    {
+      "name": "asian",
+      "description": "Dishes from Asian cuisines"
+    },
+    {
+      "name": "mexican",
+      "description": "Traditional and modern Mexican dishes"
+    },
+    {
+      "name": "indian",
+      "description": "Spiced dishes from Indian subcontinent"
+    },
+    {
+      "name": "beverages",
+      "description": "Drinks, smoothies, and liquid refreshments"
+    }
+  ],
+  "ingredients": [
+    {
+      "name": "Avocado",
+      "category": "vegetable",
+      "common_unit": "piece",
+      "nutrition_data": {
+        "calories_per_100g": 160,
+        "protein_g": 2,
+        "carbs_g": 9,
+        "fat_g": 15,
+        "fiber_g": 7
+      }
+    },
+    {
+      "name": "Cherry tomatoes",
+      "category": "vegetable", 
+      "common_unit": "cup",
+      "nutrition_data": {
+        "calories_per_100g": 18,
+        "protein_g": 0.9,
+        "carbs_g": 3.9,
+        "fat_g": 0.2,
+        "fiber_g": 1.2
+      }
+    },
+    {
+      "name": "Mozzarella cheese",
+      "category": "dairy",
+      "common_unit": "cup",
+      "nutrition_data": {
+        "calories_per_100g": 300,
+        "protein_g": 22,
+        "carbs_g": 2,
+        "fat_g": 22,
+        "fiber_g": 0
+      }
+    },
+    {
+      "name": "Fresh basil",
+      "category": "herb",
+      "common_unit": "cup",
+      "nutrition_data": {
+        "calories_per_100g": 22,
+        "protein_g": 3.2,
+        "carbs_g": 2.6,
+        "fat_g": 0.6,
+        "fiber_g": 1.6
+      }
+    },
+    {
+      "name": "Balsamic vinegar",
+      "category": "condiment",
+      "common_unit": "tablespoon",
+      "nutrition_data": {
+        "calories_per_100g": 88,
+        "protein_g": 0.5,
+        "carbs_g": 17,
+        "fat_g": 0,
+        "fiber_g": 0
+      }
+    },
+    {
+      "name": "Salmon fillet",
+      "category": "protein",
+      "common_unit": "piece",
+      "nutrition_data": {
+        "calories_per_100g": 206,
+        "protein_g": 22,
+        "carbs_g": 0,
+        "fat_g": 12,
+        "fiber_g": 0
+      }
+    },
+    {
+      "name": "Basmati rice",
+      "category": "grain",
+      "common_unit": "cup",
+      "nutrition_data": {
+        "calories_per_100g": 365,
+        "protein_g": 7.1,
+        "carbs_g": 78,
+        "fat_g": 0.9,
+        "fiber_g": 1.3
+      }
+    },
+    {
+      "name": "Coconut milk",
+      "category": "dairy",
+      "common_unit": "can",
+      "nutrition_data": {
+        "calories_per_100g": 230,
+        "protein_g": 2.3,
+        "carbs_g": 6,
+        "fat_g": 24,
+        "fiber_g": 0
+      }
+    },
+    {
+      "name": "Red curry paste",
+      "category": "spice",
+      "common_unit": "tablespoon",
+      "nutrition_data": {
+        "calories_per_100g": 160,
+        "protein_g": 4,
+        "carbs_g": 20,
+        "fat_g": 7,
+        "fiber_g": 5
+      }
+    },
+    {
+      "name": "Lime juice",
+      "category": "fruit",
+      "common_unit": "tablespoon",
+      "nutrition_data": {
+        "calories_per_100g": 25,
+        "protein_g": 0.4,
+        "carbs_g": 8,
+        "fat_g": 0.2,
+        "fiber_g": 2.8
+      }
+    },
+    {
+      "name": "Ground cumin",
+      "category": "spice",
+      "common_unit": "teaspoon",
+      "nutrition_data": {
+        "calories_per_100g": 375,
+        "protein_g": 18,
+        "carbs_g": 44,
+        "fat_g": 22,
+        "fiber_g": 11
+      }
+    },
+    {
+      "name": "Paprika",
+      "category": "spice",
+      "common_unit": "teaspoon",
+      "nutrition_data": {
+        "calories_per_100g": 282,
+        "protein_g": 14,
+        "carbs_g": 54,
+        "fat_g": 13,
+        "fiber_g": 35
+      }
+    },
+    {
+      "name": "Greek yogurt",
+      "category": "dairy",
+      "common_unit": "cup",
+      "nutrition_data": {
+        "calories_per_100g": 59,
+        "protein_g": 10,
+        "carbs_g": 3.6,
+        "fat_g": 0.4,
+        "fiber_g": 0
+      }
+    },
+    {
+      "name": "Quinoa",
+      "category": "grain",
+      "common_unit": "cup",
+      "nutrition_data": {
+        "calories_per_100g": 368,
+        "protein_g": 14,
+        "carbs_g": 64,
+        "fat_g": 6,
+        "fiber_g": 7
+      }
+    },
+    {
+      "name": "Cucumber",
+      "category": "vegetable",
+      "common_unit": "piece",
+      "nutrition_data": {
+        "calories_per_100g": 16,
+        "protein_g": 0.7,
+        "carbs_g": 4,
+        "fat_g": 0.1,
+        "fiber_g": 0.5
+      }
+    },
+    {
+      "name": "Feta cheese",
+      "category": "dairy",
+      "common_unit": "cup",
+      "nutrition_data": {
+        "calories_per_100g": 264,
+        "protein_g": 14,
+        "carbs_g": 4,
+        "fat_g": 21,
+        "fiber_g": 0
+      }
+    },
+    {
+      "name": "Red onion",
+      "category": "vegetable",
+      "common_unit": "piece",
+      "nutrition_data": {
+        "calories_per_100g": 40,
+        "protein_g": 1.1,
+        "carbs_g": 9.3,
+        "fat_g": 0.1,
+        "fiber_g": 1.7
+      }
+    },
+    {
+      "name": "Olive oil",
+      "category": "fat",
+      "common_unit": "tablespoon",
+      "nutrition_data": {
+        "calories_per_100g": 884,
+        "protein_g": 0,
+        "carbs_g": 0,
+        "fat_g": 100,
+        "fiber_g": 0
+      }
+    },
+    {
+      "name": "Lemon juice",
+      "category": "fruit",
+      "common_unit": "tablespoon",
+      "nutrition_data": {
+        "calories_per_100g": 17,
+        "protein_g": 0.4,
+        "carbs_g": 6,
+        "fat_g": 0.2,
+        "fiber_g": 1.6
+      }
+    },
+    {
+      "name": "Garlic",
+      "category": "vegetable",
+      "common_unit": "clove",
+      "nutrition_data": {
+        "calories_per_100g": 149,
+        "protein_g": 6.4,
+        "carbs_g": 33,
+        "fat_g": 0.5,
+        "fiber_g": 2.1
+      }
+    },
+    {
+      "name": "Fresh ginger",
+      "category": "spice",
+      "common_unit": "tablespoon",
+      "nutrition_data": {
+        "calories_per_100g": 80,
+        "protein_g": 1.8,
+        "carbs_g": 18,
+        "fat_g": 0.8,
+        "fiber_g": 2
+      }
+    },
+    {
+      "name": "Honey",
+      "category": "sweetener",
+      "common_unit": "tablespoon",
+      "nutrition_data": {
+        "calories_per_100g": 304,
+        "protein_g": 0.3,
+        "carbs_g": 82,
+        "fat_g": 0,
+        "fiber_g": 0.2
+      }
+    },
+    {
+      "name": "Walnuts",
+      "category": "nut",
+      "common_unit": "cup",
+      "nutrition_data": {
+        "calories_per_100g": 654,
+        "protein_g": 15,
+        "carbs_g": 14,
+        "fat_g": 65,
+        "fiber_g": 6.7
+      }
+    },
+    {
+      "name": "Spinach",
+      "category": "vegetable",
+      "common_unit": "cup",
+      "nutrition_data": {
+        "calories_per_100g": 23,
+        "protein_g": 2.9,
+        "carbs_g": 3.6,
+        "fat_g": 0.4,
+        "fiber_g": 2.2
+      }
+    },
+    {
+      "name": "Strawberries",
+      "category": "fruit",
+      "common_unit": "cup",
+      "nutrition_data": {
+        "calories_per_100g": 32,
+        "protein_g": 0.7,
+        "carbs_g": 7.7,
+        "fat_g": 0.3,
+        "fiber_g": 2
+      }
+    }
+  ],
+  "recipes": [
+    {
+      "title": "Mediterranean Quinoa Bowl",
+      "description": "A healthy and colorful bowl packed with quinoa, fresh vegetables, and Mediterranean flavors",
+      "prep_time": 15,
+      "cook_time": 20,
+      "servings": 4,
+      "difficulty": "easy",
+      "category": "salads",
+      "instructions": [
+        "Cook quinoa according to package instructions and let cool",
+        "Dice cucumber, cherry tomatoes, and red onion",
+        "Crumble feta cheese",
+        "Whisk together olive oil, lemon juice, salt, and pepper for dressing",
+        "Combine quinoa with vegetables and cheese",
+        "Drizzle with dressing and toss gently",
+        "Garnish with fresh herbs before serving"
+      ],
+      "ingredients": [
+        {"name": "Quinoa", "quantity": 1, "unit": "cup", "preparation": "rinsed"},
+        {"name": "Cucumber", "quantity": 1, "unit": "piece", "preparation": "diced"},
+        {"name": "Cherry tomatoes", "quantity": 2, "unit": "cup", "preparation": "halved"},
+        {"name": "Red onion", "quantity": 0.5, "unit": "piece", "preparation": "finely diced"},
+        {"name": "Feta cheese", "quantity": 0.75, "unit": "cup", "preparation": "crumbled"},
+        {"name": "Olive oil", "quantity": 3, "unit": "tablespoon", "preparation": ""},
+        {"name": "Lemon juice", "quantity": 2, "unit": "tablespoon", "preparation": "fresh"}
+      ]
+    },
+    {
+      "title": "Coconut Curry Salmon",
+      "description": "Tender salmon fillets in a creamy coconut curry sauce with aromatic spices",
+      "prep_time": 10,
+      "cook_time": 25,
+      "servings": 4,
+      "difficulty": "medium",
+      "category": "asian",
+      "instructions": [
+        "Season salmon fillets with salt, pepper, and paprika",
+        "Heat oil in a large skillet over medium-high heat",
+        "Sear salmon fillets for 3-4 minutes per side, remove and set aside",
+        "In same pan, sauté garlic and ginger for 30 seconds",
+        "Add red curry paste and cook for 1 minute",
+        "Pour in coconut milk and simmer for 5 minutes",
+        "Return salmon to pan and cook for 5-7 minutes",
+        "Finish with lime juice and serve over basmati rice"
+      ],
+      "ingredients": [
+        {"name": "Salmon fillet", "quantity": 4, "unit": "piece", "preparation": "skin removed"},
+        {"name": "Coconut milk", "quantity": 1, "unit": "can", "preparation": ""},
+        {"name": "Red curry paste", "quantity": 2, "unit": "tablespoon", "preparation": ""},
+        {"name": "Garlic", "quantity": 3, "unit": "clove", "preparation": "minced"},
+        {"name": "Fresh ginger", "quantity": 1, "unit": "tablespoon", "preparation": "minced"},
+        {"name": "Lime juice", "quantity": 2, "unit": "tablespoon", "preparation": ""},
+        {"name": "Paprika", "quantity": 1, "unit": "teaspoon", "preparation": ""},
+        {"name": "Basmati rice", "quantity": 1.5, "unit": "cup", "preparation": "cooked"}
+      ]
+    },
+    {
+      "title": "Caprese Salad Skewers",
+      "description": "Fresh mozzarella, cherry tomatoes, and basil on skewers - perfect appetizer",
+      "prep_time": 15,
+      "cook_time": 0,
+      "servings": 6,
+      "difficulty": "easy",
+      "category": "appetizers",
+      "instructions": [
+        "Cut mozzarella into bite-sized pieces",
+        "Wash and dry cherry tomatoes and basil leaves",
+        "Thread tomato, mozzarella, and basil onto skewers",
+        "Arrange on serving platter",
+        "Drizzle with balsamic vinegar and olive oil",
+        "Season with salt and pepper",
+        "Serve immediately at room temperature"
+      ],
+      "ingredients": [
+        {"name": "Mozzarella cheese", "quantity": 1, "unit": "cup", "preparation": "fresh, cubed"},
+        {"name": "Cherry tomatoes", "quantity": 2, "unit": "cup", "preparation": ""},
+        {"name": "Fresh basil", "quantity": 0.5, "unit": "cup", "preparation": "leaves only"},
+        {"name": "Balsamic vinegar", "quantity": 2, "unit": "tablespoon", "preparation": ""},
+        {"name": "Olive oil", "quantity": 1, "unit": "tablespoon", "preparation": ""}
+      ]
+    },
+    {
+      "title": "Spiced Greek Yogurt Bowl",
+      "description": "Creamy Greek yogurt topped with honey, nuts, and fresh berries",
+      "prep_time": 5,
+      "cook_time": 0,
+      "servings": 2,
+      "difficulty": "easy",
+      "category": "dessert",
+      "instructions": [
+        "Place Greek yogurt in serving bowls",
+        "Drizzle honey over yogurt",
+        "Sprinkle ground cumin lightly for exotic flavor",
+        "Top with fresh strawberries and walnuts",
+        "Add a final drizzle of honey",
+        "Serve immediately"
+      ],
+      "ingredients": [
+        {"name": "Greek yogurt", "quantity": 2, "unit": "cup", "preparation": "plain"},
+        {"name": "Honey", "quantity": 3, "unit": "tablespoon", "preparation": ""},
+        {"name": "Walnuts", "quantity": 0.5, "unit": "cup", "preparation": "chopped"},
+        {"name": "Strawberries", "quantity": 1, "unit": "cup", "preparation": "sliced"},
+        {"name": "Ground cumin", "quantity": 0.25, "unit": "teaspoon", "preparation": ""}
+      ]
+    },
+    {
+      "title": "Spinach Avocado Power Smoothie",
+      "description": "Nutrient-packed green smoothie with spinach, avocado, and tropical flavors",
+      "prep_time": 5,
+      "cook_time": 0,
+      "servings": 2,
+      "difficulty": "easy",
+      "category": "beverages",
+      "instructions": [
+        "Add spinach to blender first",
+        "Add peeled and pitted avocado",
+        "Pour in coconut milk",
+        "Add lime juice and honey",
+        "Blend on high speed until completely smooth",
+        "Add ice if desired consistency is thinner",
+        "Taste and adjust sweetness with more honey if needed",
+        "Serve immediately in chilled glasses"
+      ],
+      "ingredients": [
+        {"name": "Spinach", "quantity": 2, "unit": "cup", "preparation": "fresh, packed"},
+        {"name": "Avocado", "quantity": 1, "unit": "piece", "preparation": "ripe"},
+        {"name": "Coconut milk", "quantity": 1, "unit": "can", "preparation": ""},
+        {"name": "Lime juice", "quantity": 2, "unit": "tablespoon", "preparation": "fresh"},
+        {"name": "Honey", "quantity": 2, "unit": "tablespoon", "preparation": ""}
+      ]
+    },
+    {
+      "title": "Roasted Garlic Herb Salmon",
+      "description": "Perfectly roasted salmon with aromatic herbs and garlic",
+      "prep_time": 10,
+      "cook_time": 15,
+      "servings": 4,
+      "difficulty": "easy",
+      "category": "main",
+      "instructions": [
+        "Preheat oven to 425°F (220°C)",
+        "Place salmon fillets on lined baking sheet",
+        "Mix minced garlic with olive oil",
+        "Brush salmon with garlic oil mixture",
+        "Season with salt, pepper, and fresh herbs",
+        "Roast for 12-15 minutes until flakes easily",
+        "Finish with lemon juice before serving"
+      ],
+      "ingredients": [
+        {"name": "Salmon fillet", "quantity": 4, "unit": "piece", "preparation": "6 oz each"},
+        {"name": "Garlic", "quantity": 4, "unit": "clove", "preparation": "minced"},
+        {"name": "Olive oil", "quantity": 2, "unit": "tablespoon", "preparation": ""},
+        {"name": "Fresh basil", "quantity": 0.25, "unit": "cup", "preparation": "chopped"},
+        {"name": "Lemon juice", "quantity": 1, "unit": "tablespoon", "preparation": ""}
+      ]
+    },
+    {
+      "title": "Mediterranean Chickpea Salad",
+      "description": "Fresh and zesty salad with chickpeas, vegetables, and Mediterranean herbs",
+      "prep_time": 15,
+      "cook_time": 0,
+      "servings": 4,
+      "difficulty": "easy",
+      "category": "salads",
+      "instructions": [
+        "Drain and rinse chickpeas thoroughly",
+        "Dice cucumber, red onion, and tomatoes",
+        "Crumble feta cheese",
+        "Chop fresh herbs finely",
+        "Whisk olive oil with lemon juice and garlic",
+        "Combine all ingredients in large bowl",
+        "Toss with dressing and season with salt and pepper",
+        "Let marinate for 30 minutes before serving"
+      ],
+      "ingredients": [
+        {"name": "Cucumber", "quantity": 2, "unit": "piece", "preparation": "diced"},
+        {"name": "Cherry tomatoes", "quantity": 2, "unit": "cup", "preparation": "halved"},
+        {"name": "Red onion", "quantity": 0.5, "unit": "piece", "preparation": "diced"},
+        {"name": "Feta cheese", "quantity": 1, "unit": "cup", "preparation": "crumbled"},
+        {"name": "Olive oil", "quantity": 4, "unit": "tablespoon", "preparation": ""},
+        {"name": "Lemon juice", "quantity": 3, "unit": "tablespoon", "preparation": ""},
+        {"name": "Garlic", "quantity": 2, "unit": "clove", "preparation": "minced"}
+      ]
+    },
+    {
+      "title": "Ginger Honey Glazed Vegetables",
+      "description": "Colorful roasted vegetables with a sweet and spicy ginger honey glaze",
+      "prep_time": 15,
+      "cook_time": 25,
+      "servings": 6,
+      "difficulty": "easy",
+      "category": "vegetarian",
+      "instructions": [
+        "Preheat oven to 425°F (220°C)",
+        "Cut vegetables into uniform pieces",
+        "Toss vegetables with olive oil, salt, and pepper",
+        "Spread on large baking sheet in single layer",
+        "Roast for 15 minutes",
+        "Meanwhile, whisk together honey, ginger, and lime juice",
+        "Brush vegetables with glaze and roast 10 more minutes",
+        "Garnish with fresh herbs before serving"
+      ],
+      "ingredients": [
+        {"name": "Red onion", "quantity": 2, "unit": "piece", "preparation": "cut in wedges"},
+        {"name": "Cherry tomatoes", "quantity": 2, "unit": "cup", "preparation": ""},
+        {"name": "Olive oil", "quantity": 3, "unit": "tablespoon", "preparation": ""},
+        {"name": "Fresh ginger", "quantity": 2, "unit": "tablespoon", "preparation": "grated"},
+        {"name": "Honey", "quantity": 3, "unit": "tablespoon", "preparation": ""},
+        {"name": "Lime juice", "quantity": 2, "unit": "tablespoon", "preparation": ""}
+      ]
+    }
+  ]
+}
